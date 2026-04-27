@@ -1,0 +1,40 @@
+{
+  "n_customers": 5000,
+  "n_orders": 45356,
+  "total_revenue": 4522014.069999999,
+  "as_of_date": "2026-03-29",
+  "segment_summary": [
+    {
+      "segment": "VIP",
+      "customers": 1395,
+      "segment_revenue": 3409494.17,
+      "pct_customers": 27.9,
+      "pct_revenue": 75.4,
+      "avg_revenue_per_customer": 2444.08
+    },
+    {
+      "segment": "Loyal",
+      "customers": 1605,
+      "segment_revenue": 576768.01,
+      "pct_customers": 32.1,
+      "pct_revenue": 12.75,
+      "avg_revenue_per_customer": 359.36
+    },
+    {
+      "segment": "At-risk",
+      "customers": 819,
+      "segment_revenue": 402223.16,
+      "pct_customers": 16.38,
+      "pct_revenue": 8.89,
+      "avg_revenue_per_customer": 491.11
+    },
+    {
+      "segment": "Lost",
+      "customers": 1181,
+      "segment_revenue": 133528.73,
+      "pct_customers": 23.62,
+      "pct_revenue": 2.95,
+      "avg_revenue_per_customer": 113.06
+    }
+  ]
+}

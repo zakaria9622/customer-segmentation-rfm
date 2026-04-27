@@ -1,0 +1,5 @@
+segment,customers,segment_revenue,pct_customers,pct_revenue,avg_revenue_per_customer
+VIP,1395,3409494.17,27.9,75.4,2444.08
+Loyal,1605,576768.01,32.1,12.75,359.36
+At-risk,819,402223.16,16.38,8.89,491.11
+Lost,1181,133528.73,23.62,2.95,113.06
