@@ -90,6 +90,22 @@ Customers with higher purchase frequency consistently generate disproportionate 
 
 ---
 
+## What I Would Present to a Business Team
+
+Problem:
+The company treats all customers the same, even though customer value is highly unequal.
+
+Finding:
+Around 28% of customers generate more than 75% of total revenue.
+
+Decision:
+Prioritize VIP retention and targeted reactivation of at-risk customers instead of spending equally across all users.
+
+Expected Impact:
+Improve marketing ROI, protect high-value revenue, and increase customer lifetime value.
+
+---
+
 ## 💡 Strategic Recommendations
 
 ### 1. Protect and Expand VIP Segment
