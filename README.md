@@ -1,184 +1,166 @@
-# 📊 Customer Segmentation & Revenue Optimization (RFM Analysis)
+# Customer segmentation with RFM (CRM analytics)
 
-## 🧠 Business Context
-
-The company is facing a classic scaling challenge:  
-while customer acquisition remains active, **revenue growth is not fully optimized due to a lack of customer-level targeting**.
-
-Current marketing strategy treats customers as a homogeneous group, resulting in:
-- inefficient allocation of marketing budget  
-- missed opportunities for upsell and retention  
-- limited visibility on high-value vs low-value customers  
-
-This project addresses this gap by transforming transactional data into **actionable customer segments**, enabling **targeted growth strategies** focused on maximizing revenue and retention.
+Portfolio piece for **junior Data Analyst** and **CRM Analyst** roles: start from orders, end with **who matters for revenue**, **who needs a different journey**, and **where to cap spend**—using definitions a business team can audit, not a black-box model.
 
 ---
 
-## 🎯 Objective
+## Story at a glance (this repo’s run)
 
-- Identify high-value customers driving the majority of revenue  
-- Detect early signals of churn among previously valuable users  
-- Quantify revenue concentration across segments  
-- Provide actionable, segment-specific marketing strategies  
+All figures below are copied from **`outputs/metrics.json`** (same run as the tables and charts in `outputs/`).
 
----
+| Question | Answer from the data |
+|----------|----------------------|
+| How big is the base? | **5,000** customers, **45,356** orders, **4,522,014.07** revenue (sum of order lines), last order **2026-03-29** |
+| Who carries revenue? | **VIP**: **1,395** customers (**27.9%**) → **3,409,494.17** revenue (**75.4%** of total) |
+| Who is large but light on revenue? | **Lost**: **1,181** customers (**23.62%**) → **133,528.73** revenue (**2.95%** of total) |
+| Who should CRM worry about *before* they look “Lost”? | **At-risk**: **819** (**16.38%** of customers), **402,223.16** revenue (**8.89%**); **491.11** avg revenue per customer vs **359.36** for **Loyal** |
+| Who is the “grow the middle” file? | **Loyal**: **1,605** (**32.1%** of customers), **576,768.01** revenue (**12.75%**) |
 
-## 🔍 Methodology — RFM Framework
-
-Customer segmentation is based on the **RFM model**, a proven approach in CRM and marketing analytics:
-
-- **Recency (R):** Time since last purchase → indicator of engagement  
-- **Frequency (F):** Number of transactions → proxy for loyalty  
-- **Monetary (M):** Total revenue → direct business value  
-
-Each dimension is scored from **1 to 5 using quintiles**, allowing for standardized comparison across customers.
+That contrast—**75.4%** of revenue from **27.9%** of customers, while **23.62%** of customers produce **2.95%** of revenue—is the core CRM story in one glance.
 
 ---
 
-## 📊 Segmentation Logic
+## Business problem
 
-Customers are assigned to business-relevant segments:
+When **retention and CRM** are not tied to **value and lifecycle stage**, teams usually see the same failure mode:
 
-- **VIP Customers:** Highly engaged, frequent buyers with strong monetary value  
-- **Loyal Customers:** Consistent purchasers with moderate value  
-- **At-Risk Customers:** Previously valuable customers showing declining activity  
-- **Lost Customers:** Inactive, low-value customers with minimal recent engagement  
+- **Budget and sends** spread evenly, so **high-value** buyers get under-served and **low-value** dormant profiles get over-mailed.  
+- **Win-back** starts too late: by the time “everyone” notices churn, the customer already matches **Lost** behavior.  
+- **Leadership** lacks a single view of “revenue concentration” and “rescue opportunity,” so prioritization in weekly CRM standups becomes opinion-driven.
 
-This segmentation enables **prioritization of marketing efforts based on expected ROI**.
+This project answers four practical questions for Marketing / CRM / leadership—using only the transactional extract in `data/` and reproducible rules in `scripts/rfm_segmentation.py`:
 
----
-
-## 🚨 Key Business Insights
-
-### 1. Revenue Concentration is Extremely High
-A relatively small share of customers (**~28%**) generates **over 75% of total revenue**.
-
-👉 This indicates a strong dependency on a high-value segment (VIP), making **retention of these customers critical to revenue stability**.
+1. Who already **drives most revenue** today?  
+2. Who is **quiet but historically strong** (defend revenue before it disappears)?  
+3. Who is the **broad engaged middle** where growth tactics (cross-sell, frequency) fit best?  
+4. Where should we **avoid expensive** one-size-fits-all reactivation?
 
 ---
 
-### 2. At-Risk Segment Represents Immediate Revenue Opportunity
-At-risk customers represent only **16% of the base**, but contribute nearly **9% of total revenue**.
+## Segmentation logic (how labels are built)
 
-👉 These are **historically high-value customers**, currently disengaging —  
-making them the **highest ROI target for reactivation campaigns**.
+**Step 1 — RFM metrics (per customer)**
 
----
+| Metric | Definition |
+|--------|------------|
+| **Recency** | Days from last order to the day after the latest order in the data (reference **2026-03-30**; last observed order **2026-03-29**) |
+| **Frequency** | Count of orders |
+| **Monetary** | Sum of order revenue |
 
-### 3. Loyal Segment is Under-Monetized
-Loyal customers represent **32% of the customer base**, but only **~13% of revenue**.
+**Step 2 — Scores 1–5 (quintiles)**  
 
-👉 This suggests:
-- strong engagement but low monetization  
-- significant opportunity for **upselling and cross-selling strategies**
+Each of **R**, **F**, and **M** is scored **1** (weak) to **5** (strong) with **rank-based quintiles** on the full customer base: **shorter** time since last order → **higher R**; **more orders** → **higher F**; **more revenue** → **higher M**.
 
----
+**Step 3 — Business segments (priority order)**  
 
-### 4. Lost Customers Drive Minimal Business Value
-Lost customers represent **~24% of users**, but contribute **less than 3% of revenue**.
+Labels are **mutually exclusive** and applied in this order (see `scripts/rfm_segmentation.py`):
 
-👉 This highlights:
-- low return on reactivation investment  
-- need for **cost-controlled or selective re-engagement strategies**
+1. **VIP** — `R ≥ 4` **and** `F ≥ 4` **and** `M ≥ 4`: top tier on all three dimensions *within this cohort’s distribution*.  
+2. **Lost** — `R ≤ 2` **and** `F ≤ 2` **and** `M ≤ 2`: weak on recency, frequency, and monetary.  
+3. **At-risk** — `R ≤ 2`, **not** Lost, and **`F ≥ 3` or `M ≥ 3`**: poor recency but **enough** past frequency or spend to justify a **focused** win-back path (before they fully match Lost).  
+4. **Loyal** — everyone else: not VIP, not Lost, not At-risk.
 
----
-
-### 5. Frequency is the Primary Revenue Driver
-Customers with higher purchase frequency consistently generate disproportionate revenue.
-
-👉 Increasing purchase frequency is a **key lever for growth**, often more impactful than acquisition.
+**Why priority order matters for the business:** VIP is evaluated **first** so your “best of the best” is not overwritten by a weaker rule. Lost is defined **before** At-risk so “weak everywhere” is not double-counted as “recoverable.”
 
 ---
 
-## What I Would Present to a Business Team
+## Key customer insights (grounded in segment outputs)
 
-Problem:
-The company treats all customers the same, even though customer value is highly unequal.
+Summary table (same numbers as `metrics.json`):
 
-Finding:
-Around 28% of customers generate more than 75% of total revenue.
+| Segment | Customers | % customers | Segment revenue | % revenue | Avg revenue / customer |
+|---------|-----------:|-------------|----------------:|----------:|-----------------------:|
+| VIP | 1,395 | 27.90 | 3,409,494.17 | 75.40 | 2,444.08 |
+| Loyal | 1,605 | 32.10 | 576,768.01 | 12.75 | 359.36 |
+| At-risk | 819 | 16.38 | 402,223.16 | 8.89 | 491.11 |
+| Lost | 1,181 | 23.62 | 133,528.73 | 2.95 | 113.06 |
 
-Decision:
-Prioritize VIP retention and targeted reactivation of at-risk customers instead of spending equally across all users.
+**1. Revenue concentration (VIP)**  
+**1,395** customers (**27.9%**) generate **3,409,494.17** of **4,522,014.07** total revenue (**75.4%**). Any CRM or service disruption here hits the bulk of historical value.
 
-Expected Impact:
-Improve marketing ROI, protect high-value revenue, and increase customer lifetime value.
+**2. At-risk = smaller list, meaningful dollars, higher average than Loyal**  
+**819** customers (**16.38%**), **402,223.16** revenue (**8.89%**). Average revenue per customer **491.11** exceeds Loyal **359.36**—so “Loyal” in name is not always “higher value per head” in this snapshot; At-risk deserves **its own** treatment and reporting line.
 
----
+**3. Loyal = share of wallet / frequency opportunity**  
+**1,605** customers (**32.1%**) but **12.75%** of revenue (**576,768.01**). Natural place for **structured** cross-sell and habit-building—not the same incentives as VIP.
 
-## 💡 Strategic Recommendations
-
-### 1. Protect and Expand VIP Segment
-- Implement premium loyalty programs  
-- Offer exclusive access and personalized experiences  
-- Focus on retention over acquisition  
-
-👉 Objective: **maximize lifetime value and reduce churn risk**
+**4. Lost = many profiles, little revenue**  
+**1,181** customers (**23.62%**), **133,528.73** revenue (**2.95%**). Segment-level average revenue **113.06** vs VIP **2,444.08** is a ratio of **2,444.08 ÷ 113.06 ≈ 21.6** (derived from the two published averages—useful for explaining *magnitude*, not a second hidden dataset).
 
 ---
 
-### 2. Reactivate At-Risk Customers (High ROI Priority)
-- Deploy targeted win-back campaigns  
-- Use time-sensitive incentives  
-- Leverage behavioral retargeting  
+## Recommended CRM actions by segment
 
-👉 Objective: **recover declining revenue before churn becomes permanent**
-
----
-
-### 3. Monetize Loyal Customers
-- Introduce cross-selling and bundling strategies  
-- Promote subscription-based offers  
-- Encourage higher basket size  
-
-👉 Objective: **upgrade Loyal → VIP segment**
+| Segment | Business intent | CRM / lifecycle actions (examples) |
+|---------|-----------------|--------------------------------------|
+| **VIP** | Protect LTV, avoid silent churn | Tiered benefits, early access, high-touch service paths, **discount discipline**; monitor downgrade into At-risk |
+| **Loyal** | Grow orders and basket | Cross-sell / bundles, replenishment, referrals; **test** incentives with margin guardrails |
+| **At-risk** | Recover before rules label them Lost | Short win-back journeys, time-bound offers, **frequency caps**, suppress non-openers; prioritize highest **M** / **F** within At-risk in tooling |
+| **Lost** | Cheap or no-touch; hygiene | Long cadence or sunset, clearance-style messaging, suppress from paid if policy allows; avoid cloning this profile in acquisition |
 
 ---
 
-### 4. Optimize Spend on Lost Customers
-- Limit high-cost acquisition/retargeting  
-- Focus on low-cost reactivation campaigns  
-- Use data to avoid acquiring similar low-value profiles  
+## Expected business impact (qualitative—no fabricated lift %)
 
-👉 Objective: **improve marketing ROI**
+There is **no** randomized holdout in this repo, so impact stays **directional**—how hiring managers expect a junior analyst to speak without inventing “+X% revenue.”
 
----
+| Segment | What “good” would look like if CRM acts on this |
+|---------|--------------------------------------------------|
+| **VIP** | Fewer unexplained drops in recency/F/M among the group that currently represents **75.4%** of revenue; CRM and service effort aligned to **27.9%** of customers who matter most |
+| **At-risk** | Part of the **8.89%** revenue pool and **402,223.16** segment total reactivated **without** blasting the whole file—measured by re-purchase and margin after offer |
+| **Loyal** | Gradual lift in orders or revenue per customer from the **32.1%** base (**12.75%** of revenue today) via journeys, not one-off batch sends |
+| **Lost** | Lower cost-to-serve on CRM and paid for the **23.62%** of customers who only represent **2.95%** of revenue at segment level; cleaner list health |
 
-## 📈 Business Impact
-
-By implementing these strategies, the company can:
-
-- increase customer lifetime value (CLV)  
-- reduce churn in high-value segments  
-- improve marketing efficiency and ROI  
-- drive revenue growth without increasing acquisition costs  
+**KPIs to report in standup (no targets invented):** segment **counts**, **% customers**, **% revenue**, **avg revenue per customer**, and week-over-week **migration** between segments after campaigns (definitions unchanged).
 
 ---
 
-## ⚙️ Technical Implementation
+## What I would present to a business team
 
-- Python (pandas) for data processing  
-- RFM scoring logic using quantiles  
-- Customer segmentation framework  
-- Data visualization (distribution + revenue contribution)  
+**Slide 1 — Why we’re here**  
+One list / one discount strategy misaligns spend with value; we need a **shared** view of who drives revenue and who is sliding.
+
+**Slide 2 — What I built (trust)**  
+Order → customer-level **R, F, M** → quintile scores **1–5** → **transparent** segment rules (this README + `scripts/rfm_segmentation.py`). Anyone can challenge thresholds.
+
+**Slide 3 — The headline (numbers from this run)**  
+- **75.4%** of revenue from **27.9%** of customers (**3,409,494.17 / 4,522,014.07**).  
+- **2.95%** of revenue from **23.62%** of customers (**133,528.73 / 4,522,014.07**).
+
+**Slide 4 — The “do this next” segment**  
+At-risk: **16.38%** of customers, **8.89%** of revenue, **491.11** avg revenue per customer **>** Loyal **359.36** → **prioritized win-back** design, not a generic blast.
+
+**Slide 5 — Ask**  
+Approve **four journeys** (VIP / Loyal / At-risk / Lost), align ESP or CRM audiences to these definitions, and review **segment summary** weekly from `outputs/segment_summary.csv` (or the warehouse equivalent).
+
+**Artifacts on the table:** `outputs/segment_distribution_and_revenue.png`, `outputs/segment_share_pie.png`, `outputs/segment_summary.csv`, `outputs/metrics.json`.
+
+**Questions I’d expect—and how I’d answer**  
+- *“Why quintiles?”* → Same scale across R/F/M for a **first** segmentation layer; thresholds can be recalibrated with leadership.  
+- *“Why not ML?”* → Start with **interpretable** rules CRM can implement; ML can layer on later with governance.  
+- *“Can we trust synthetic data?”* → This repo proves **pipeline** and **storytelling**; production uses the same logic on **real** extracts.
 
 ---
 
-## 🎤 Interview Explanation
+## Technical stack and outputs
 
-> “I used RFM analysis to segment customers based on engagement and value.  
-I found that a small group of customers generates the majority of revenue, while a significant portion is at risk of churn.  
-Based on this, I proposed targeted strategies such as VIP retention programs and reactivation campaigns for at-risk users to maximize revenue efficiently.”
+- **Python**, **pandas** (RFM aggregation and scoring), **matplotlib** (charts).  
+- **Outputs:** `outputs/rfm_scores.csv`, `outputs/segment_summary.csv`, `outputs/metrics.json`, PNG charts under `outputs/`.
+
+```text
+02_customer_segmentation/
+├── README.md
+├── requirements.txt
+├── data/customer_orders.csv
+├── scripts/generate_dataset.py
+├── scripts/rfm_segmentation.py
+└── outputs/
+```
+
+**Re-run:** `pip install -r requirements.txt` → `python scripts/generate_dataset.py` → `python scripts/rfm_segmentation.py`. Regenerating data **changes** outputs; refresh numbers from **`outputs/metrics.json`** after a new run.
 
 ---
 
-## 🚀 Skills Demonstrated
+## One-line interview pitch
 
-- Customer segmentation  
-- Marketing analytics  
-- Revenue optimization strategy  
-- Data analysis (Python, pandas)  
-- Business insight generation  
-- Data-driven decision making  
-
----
+> I built RFM quintiles and priority-based segment rules, then showed **75.4%** of revenue from **27.9%** of customers while **23.62%** of customers contribute **2.95%** of revenue—so CRM should **protect VIPs**, **win back At-risk with caps**, **grow Loyal with structured journeys**, and **limit spend on Lost**.
